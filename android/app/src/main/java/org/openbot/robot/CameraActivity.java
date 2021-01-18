@@ -38,6 +38,7 @@ import android.media.Image;
 import android.media.Image.Plane;
 import android.media.ImageReader;
 import android.media.ImageReader.OnImageAvailableListener;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -48,9 +49,11 @@ import android.os.Messenger;
 import android.os.RemoteException;
 import android.os.SystemClock;
 import android.os.Trace;
+import android.text.format.Formatter;
 import android.util.Log;
 import android.util.Size;
 import android.view.Surface;
+import android.view.SurfaceHolder;
 import android.view.View;
 import android.view.ViewTreeObserver;
 import android.view.WindowManager;
@@ -100,12 +103,15 @@ import org.openbot.tflite.Network.Model;
 import org.zeroturnaround.zip.ZipUtil;
 import org.zeroturnaround.zip.commons.FileUtils;
 
+import static android.Manifest.permission.RECORD_AUDIO;
+
 public abstract class CameraActivity extends AppCompatActivity
     implements OnImageAvailableListener,
         Camera.PreviewCallback,
         CompoundButton.OnCheckedChangeListener,
         View.OnClickListener,
-        AdapterView.OnItemSelectedListener {
+        AdapterView.OnItemSelectedListener,
+        SurfaceHolder.Callback {
   private static final Logger LOGGER = new Logger();
 
   // Constants
@@ -114,6 +120,7 @@ public abstract class CameraActivity extends AppCompatActivity
   private static final int REQUEST_LOCATION_PERMISSION_CONTROLLER = 3;
   private static final int REQUEST_STORAGE_PERMISSION = 4;
   private static final int REQUEST_BLUETOOTH_PERMISSION = 5;
+  private static final int REQUEST_RECORD_PERMISSION_CONTROLLER = 6;
 
   private static final String PERMISSION_CAMERA = Manifest.permission.CAMERA;
   private static final String PERMISSION_LOCATION = Manifest.permission.ACCESS_FINE_LOCATION;
@@ -185,6 +192,7 @@ public abstract class CameraActivity extends AppCompatActivity
   private final String voice = "matthew";
 
   protected Vehicle vehicle;
+  private CameraConnectionFragment cameraFragment;
 
   @Override
   protected void onCreate(final Bundle savedInstanceState) {
@@ -557,6 +565,9 @@ public abstract class CameraActivity extends AppCompatActivity
       handlerThread = null;
       handler = null;
       uploadService.stop();
+      if (cameraFragment != null && cameraFragment.getRtspServer() != null) {
+        cameraFragment.getRtspServer().stopServer();
+      }
     } catch (final InterruptedException e) {
       LOGGER.e(e, "Exception!");
     }
@@ -621,13 +632,30 @@ public abstract class CameraActivity extends AppCompatActivity
         // If the permission is granted, start advertising to controller,
         // otherwise, show a Toast
         if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            // ask for recording permissions here
+
+          ActivityCompat.requestPermissions(
+                  this, new String[] {RECORD_AUDIO}, REQUEST_RECORD_PERMISSION_CONTROLLER);
+
+        } else {
+          if (ActivityCompat.shouldShowRequestPermissionRationale(this, PERMISSION_LOCATION)) {
+            Toast.makeText(this, R.string.location_permission_denied_controller, Toast.LENGTH_LONG)
+                    .show();
+          }
+        }
+        break;
+
+      case REQUEST_RECORD_PERMISSION_CONTROLLER:
+        // If the permission is granted, start advertising to controller,
+        // otherwise, show a Toast
+        if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
           if (!phoneController.isConnected()) {
             phoneController.connect(this);
           }
         } else {
-          if (ActivityCompat.shouldShowRequestPermissionRationale(this, PERMISSION_LOCATION)) {
-            Toast.makeText(this, R.string.location_permission_denied_controller, Toast.LENGTH_LONG)
-                .show();
+          if (ActivityCompat.shouldShowRequestPermissionRationale(this, RECORD_AUDIO)) {
+            Toast.makeText(this, R.string.record_audio_permission_denied_controller, Toast.LENGTH_LONG)
+                    .show();
           }
         }
         break;
@@ -651,9 +679,17 @@ public abstract class CameraActivity extends AppCompatActivity
         == PackageManager.PERMISSION_GRANTED;
   }
 
-  private boolean hasLocationPermission() {
+  private boolean hasControllerPermission() {
     return ContextCompat.checkSelfPermission(this, PERMISSION_LOCATION)
-        == PackageManager.PERMISSION_GRANTED;
+            == PackageManager.PERMISSION_GRANTED
+
+    && ContextCompat.checkSelfPermission(this, RECORD_AUDIO)
+            == PackageManager.PERMISSION_GRANTED;
+  }
+
+  private boolean hasAudioRecordingPermission() {
+    return ContextCompat.checkSelfPermission(this, RECORD_AUDIO)
+            == PackageManager.PERMISSION_GRANTED;
   }
 
   private boolean hasStoragePermission() {
@@ -676,9 +712,9 @@ public abstract class CameraActivity extends AppCompatActivity
         this, new String[] {PERMISSION_LOCATION}, REQUEST_LOCATION_PERMISSION_LOGGING);
   }
 
-  private void requestLocationPermissionController() {
+  private void requestControllerPermission() {
     ActivityCompat.requestPermissions(
-        this, new String[] {PERMISSION_LOCATION}, REQUEST_LOCATION_PERMISSION_CONTROLLER);
+            this, new String[] {PERMISSION_LOCATION}, REQUEST_LOCATION_PERMISSION_CONTROLLER);
   }
 
   private void requestStoragePermission() {
@@ -772,7 +808,13 @@ public abstract class CameraActivity extends AppCompatActivity
               this, getLayoutId(), getDesiredPreviewFrameSize(), cameraSelection);
     }
 
+    this.cameraFragment = (CameraConnectionFragment)fragment;
     getFragmentManager().beginTransaction().replace(R.id.container, fragment).commit();
+  }
+
+  @Override
+  public void surfaceCreated(SurfaceHolder holder) {
+    Log.i(null, "surfaceCreated");
   }
 
   protected void fillBytes(final Plane[] planes, final byte[][] yuvBytes) {
@@ -868,7 +910,8 @@ public abstract class CameraActivity extends AppCompatActivity
           break;
         case PHONE:
           handleControllerEvents();
-          if (!hasLocationPermission()) requestLocationPermissionController();
+          if (!hasControllerPermission())
+            requestControllerPermission();
           else connectPhoneController();
           break;
         case WEBRTC:
@@ -1099,7 +1142,7 @@ public abstract class CameraActivity extends AppCompatActivity
       if (!hasCameraPermission() && logMode != LogMode.ONLY_SENSORS) {
         requestCameraPermission();
         loggingEnabled = false;
-      } else if (!hasLocationPermission()) {
+      } else if (!hasControllerPermission()) {
         requestLocationPermissionLogging();
         loggingEnabled = false;
       } else if (!hasStoragePermission()) {
@@ -1113,7 +1156,7 @@ public abstract class CameraActivity extends AppCompatActivity
       stopLogging();
       loggingEnabled = false;
     }
-    BotToControllerEventBus.emitEvent(createStatus("LOGS", loggingEnabled));
+    BotToControllerEventBus.emitEvent(createStatus("LOGS", String.valueOf(loggingEnabled)));
 
     logSpinner.setEnabled(!loggingEnabled);
     if (loggingEnabled) logSpinner.setAlpha(0.5f);
@@ -1299,10 +1342,12 @@ public abstract class CameraActivity extends AppCompatActivity
                   // Other controllers can subscribe to this event as well.
                   // That is why we are not calling phoneController.send() here directly.
                   BotToControllerEventBus.emitEvent(getStatus());
+                  cameraFragment.getRtspServer().startServer(previewWidth, previewHeight, 1935);
                   break;
                 case "DISCONNECTED":
                   controllerHandler.handleDriveCommand(0.f, 0.f);
                   setControlMode(ControlMode.GAMEPAD);
+                  cameraFragment.getRtspServer().stopServer();
                   break;
               }
             });
@@ -1323,6 +1368,9 @@ public abstract class CameraActivity extends AppCompatActivity
       statusValue.put("INDICATOR_LEFT", vehicle.getIndicator() == -1);
       statusValue.put("INDICATOR_RIGHT", vehicle.getIndicator() == 1);
       statusValue.put("INDICATOR_STOP", vehicle.getIndicator() == 0);
+      statusValue.put("IP_ADDRESS", getMyIp());
+      statusValue.put("PORT", "1935");
+      statusValue.put("CAMERA_RESOLUTION", getCameraResolution());
 
       status.put("status", statusValue);
 
@@ -1332,8 +1380,14 @@ public abstract class CameraActivity extends AppCompatActivity
     return status;
   }
 
-  protected JSONObject createStatus(String name, Boolean value) {
-    return createStatus(name, value ? "true" : "false");
+  private String getMyIp () {
+      WifiManager wm = (WifiManager) context.getSystemService(WIFI_SERVICE);
+      String ip = Formatter.formatIpAddress(wm.getConnectionInfo().getIpAddress());
+      return ip;
+  }
+
+  private String getCameraResolution() {
+      return "{width:"+ previewWidth+", height:"+previewHeight+"}";
   }
 
   protected JSONObject createStatus(String name, String value) {
@@ -1346,9 +1400,9 @@ public abstract class CameraActivity extends AppCompatActivity
   }
 
   private void sendIndicatorStatus(Integer status) {
-    BotToControllerEventBus.emitEvent(createStatus("INDICATOR_LEFT", status == -1));
-    BotToControllerEventBus.emitEvent(createStatus("INDICATOR_RIGHT", status == 1));
-    BotToControllerEventBus.emitEvent(createStatus("INDICATOR_STOP", status == 0));
+    BotToControllerEventBus.emitEvent(createStatus("INDICATOR_LEFT", String.valueOf(status == -1)));
+    BotToControllerEventBus.emitEvent(createStatus("INDICATOR_RIGHT", String.valueOf(status == 1)));
+    BotToControllerEventBus.emitEvent(createStatus("INDICATOR_STOP", String.valueOf(status == 0)));
   }
 
   // Controller event handler

@@ -11,10 +11,10 @@ package org.openbot.controller
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
+import android.text.format.Formatter.formatIpAddress
 import android.util.Log
 import android.view.View
 import android.view.WindowInsets
@@ -27,6 +27,8 @@ import org.openbot.controller.customComponents.DualDriveSeekBar
 import org.openbot.controller.databinding.ActivityFullscreenBinding
 import org.openbot.controller.utils.EventProcessor
 import org.openbot.controller.utils.Utils
+import java.util.*
+
 
 class ControllerActivity : /*AppCompat*/ Activity() { // for some reason AppCompatActivity gives errors in the IDE, but it does compile,
     private val TAG = "ControllerActivity"
@@ -50,9 +52,19 @@ class ControllerActivity : /*AppCompat*/ Activity() { // for some reason AppComp
         binding.rightDriveControl.setDirection(DualDriveSeekBar.LeftOrRight.RIGHT)
 
         screenManager.hideControls()
+        // screenManager.showControls()
+
         hideSystemUI()
 
         BotDataListener.init()
+        binding.videoView.init(binding)
+    }
+
+    private fun getLocalIpAddress(): String? {
+        val wifiManager = applicationContext.getSystemService(WIFI_SERVICE) as WifiManager
+        val ipAddress: Int = wifiManager.connectionInfo.ipAddress
+        val ip = String.format("%d.%d.%d.%d", ipAddress and 0xff, ipAddress shr 8 and 0xff, ipAddress shr 16 and 0xff, ipAddress shr 24 and 0xff)
+        return ip
     }
 
     private fun createAppEventsSubscription(): Disposable =
@@ -65,6 +77,9 @@ class ControllerActivity : /*AppCompat*/ Activity() { // for some reason AppComp
                             EventProcessor.ProgressEvents.ConnectionSuccessful -> {
                                 Utils.beep()
                                 screenManager.showControls()
+                                Log.i(null, "IP address: " + getLocalIpAddress())
+                                // binding.videoView.start("rtsp://wowzaec2demo.streamlock.net/vod/mp4:BigBuckBunny_115k.mov")
+                                // binding.videoView.start("rtsp://192.168.1.102:1935")
                             }
                             EventProcessor.ProgressEvents.ConnectionStarted -> {
                             }
@@ -118,6 +133,7 @@ class ControllerActivity : /*AppCompat*/ Activity() { // for some reason AppComp
     @Override
     override fun onPause() {
         super.onPause()
+        binding.videoView.release ()
         NearbyConnection.disconnect()
     }
 

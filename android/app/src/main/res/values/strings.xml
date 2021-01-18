@@ -7,6 +7,7 @@
     <string name="camera_error">This device doesn\'t support Camera2 API.</string>
     <string name="threads">Threads</string>
     <string name="location_permission_denied_logging">Location permission is necessary for logging GPS data.</string>
+    <string name="record_audio_permission_denied_controller">Recording audio is necessary for sending Audio/Visual stream to the controller.</string>
     <string name="location_permission_denied_controller">Location permission is necessary for finding the controller phone.</string>
     <string name="storage_permission_denied">External storage permission is necessary for logging.</string>
     <string name="off">Off</string>

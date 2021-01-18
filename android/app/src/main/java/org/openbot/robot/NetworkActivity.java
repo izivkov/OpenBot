@@ -34,6 +34,10 @@ import android.util.TypedValue;
 import android.view.InputDevice;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
+import android.view.SurfaceHolder;
+
+import androidx.annotation.NonNull;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.LinkedList;
@@ -285,7 +289,7 @@ public class NetworkActivity extends CameraActivity implements OnImageAvailableL
 
   protected void toggleNoise() {
     noiseEnabled = !noiseEnabled;
-    BotToControllerEventBus.emitEvent(createStatus("NOISE", noiseEnabled));
+    BotToControllerEventBus.emitEvent(createStatus("NOISE", String.valueOf(noiseEnabled)));
     if (noiseEnabled) {
       vehicle.startNoise();
     } else vehicle.stopNoise();
@@ -461,5 +465,15 @@ public class NetworkActivity extends CameraActivity implements OnImageAvailableL
       return true;
     }
     return super.dispatchKeyEvent(event);
+  }
+
+  @Override
+  public void surfaceChanged(@NonNull SurfaceHolder holder, int format, int width, int height) {
+
+  }
+
+  @Override
+  public void surfaceDestroyed(@NonNull SurfaceHolder holder) {
+
   }
 }

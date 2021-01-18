@@ -40,10 +40,10 @@ android {
 
 // Download default models
 project.ext.ASSET_DIR = projectDir.toString() + '/src/main/assets'
-apply from:'download.gradle'
+apply from: 'download.gradle'
 
 dependencies {
-    implementation fileTree(dir: 'libs', include: ['*.jar','*.aar'])
+    implementation fileTree(dir: 'libs', include: ['*.jar', '*.aar'])
     implementation 'com.google.android.material:material:1.2.1'
 
     // Build off of stable TensorFlow Lite
@@ -88,6 +88,10 @@ dependencies {
     // CameraX View class
     implementation "androidx.camera:camera-view:1.0.0-alpha19"
 
+    implementation 'com.github.pedroSG94:RTSP-Server:1.0.0'
+    implementation 'com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:1.9.3'
+
     // For a library module, uncomment the following line
     // implementation project(path: ':controller')
 }
+

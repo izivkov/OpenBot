@@ -167,27 +167,39 @@ public class CameraConnectionFragment extends Fragment {
    * TextureView}.
    */
   private final TextureView.SurfaceTextureListener surfaceTextureListener =
-      new TextureView.SurfaceTextureListener() {
+      new RtspServer() { // TextureView.SurfaceTextureListener() {
         @Override
         public void onSurfaceTextureAvailable(
             final SurfaceTexture texture, final int width, final int height) {
           openCamera(width, height);
+
+          setView(textureView);
+          super.onSurfaceTextureAvailable(texture, width, height);
         }
 
         @Override
         public void onSurfaceTextureSizeChanged(
             final SurfaceTexture texture, final int width, final int height) {
           configureTransform(width, height);
+
+          super.onSurfaceTextureSizeChanged(texture, width, height);
         }
 
         @Override
         public boolean onSurfaceTextureDestroyed(final SurfaceTexture texture) {
+          super.onSurfaceTextureDestroyed(texture);
           return true;
         }
 
         @Override
-        public void onSurfaceTextureUpdated(final SurfaceTexture texture) {}
+        public void onSurfaceTextureUpdated(final SurfaceTexture texture) {
+          super.onSurfaceTextureUpdated(texture);
+        }
       };
+
+  public RtspServer getRtspServer () {
+    return (RtspServer) surfaceTextureListener;
+  }
 
   private CameraConnectionFragment(
       final ConnectionCallback connectionCallback,

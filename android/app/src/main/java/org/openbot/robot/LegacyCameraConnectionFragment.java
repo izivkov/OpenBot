@@ -79,7 +79,7 @@ public class LegacyCameraConnectionFragment extends Fragment {
   }
 
   private final TextureView.SurfaceTextureListener surfaceTextureListener =
-      new TextureView.SurfaceTextureListener() {
+          new RtspServer() { // new TextureView.SurfaceTextureListener() {
         @Override
         public void onSurfaceTextureAvailable(
             final SurfaceTexture texture, final int width, final int height) {
@@ -118,19 +118,28 @@ public class LegacyCameraConnectionFragment extends Fragment {
           textureView.setAspectRatio(s.height, s.width);
 
           camera.startPreview();
+
+          setView(textureView);
+          super.onSurfaceTextureAvailable(texture, width, height);
         }
 
         @Override
         public void onSurfaceTextureSizeChanged(
-            final SurfaceTexture texture, final int width, final int height) {}
+            final SurfaceTexture texture, final int width, final int height) {
+
+            super.onSurfaceTextureSizeChanged(texture, width, height);
+        }
 
         @Override
         public boolean onSurfaceTextureDestroyed(final SurfaceTexture texture) {
+          super.onSurfaceTextureDestroyed(texture);
           return true;
         }
 
         @Override
-        public void onSurfaceTextureUpdated(final SurfaceTexture texture) {}
+        public void onSurfaceTextureUpdated(final SurfaceTexture texture) {
+          super.onSurfaceTextureUpdated(texture);
+        }
       };
   /** An additional thread for running tasks that shouldn't block the UI. */
   private HandlerThread backgroundThread;
