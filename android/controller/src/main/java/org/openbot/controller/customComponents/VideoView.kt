@@ -15,6 +15,7 @@ import android.util.Log
 import android.view.SurfaceView
 import com.pedro.vlc.VlcListener
 import com.pedro.vlc.VlcVideoLibrary
+import org.json.JSONObject
 import org.openbot.controller.StatusEventBus
 import org.openbot.controller.databinding.ActivityFullscreenBinding
 import java.util.*
@@ -40,7 +41,7 @@ class VideoView @JvmOverloads constructor(
 
         StatusEventBus.addSubject("CAMERA_RESOLUTION")
         StatusEventBus.getProcessor("CAMERA_RESOLUTION")?.subscribe {
-            gotIpAddress(it as String)
+            gotCameraResolution(it as String)
         }
     }
 
@@ -59,7 +60,10 @@ class VideoView @JvmOverloads constructor(
     }
 
     private fun gotCameraResolution(data: String) {
-
+        val dimensionJson = JSONObject(data)
+        val width = dimensionJson.getInt("width")
+        val height = dimensionJson.getInt("height")
+        setMeasuredDimension(width, height)
     }
 
     private inner class Listener : VlcListener {
