@@ -17,6 +17,8 @@ limitations under the License.
 
 package org.openbot.robot;
 
+import static android.widget.Toast.*;
+
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.Config;
 import android.graphics.Canvas;
@@ -55,8 +57,8 @@ import org.openbot.env.ImageUtils;
 import org.openbot.env.Logger;
 import org.openbot.tflite.Autopilot;
 import org.openbot.tflite.Detector;
+import org.openbot.tflite.Model;
 import org.openbot.tflite.Network.Device;
-import org.openbot.tflite.Network.Model;
 import org.openbot.tracking.MultiBoxTracker;
 
 /**
@@ -407,8 +409,9 @@ public class NetworkActivity extends CameraActivity implements OnImageAvailableL
       cropToFrameTransform = new Matrix();
       frameToCropTransform.invert(cropToFrameTransform);
 
-    } catch (IOException e) {
-      LOGGER.e(e, "Failed to create detector.");
+    } catch (IllegalArgumentException | IOException e) {
+      String msg = "Failed to create network.";
+      LOGGER.e(e, msg);
     }
   }
 
@@ -430,10 +433,11 @@ public class NetworkActivity extends CameraActivity implements OnImageAvailableL
 
   @Override
   public boolean dispatchKeyEvent(KeyEvent event) {
-    if (controlMode == ControlMode.GAMEPAD) {
-      // Check that the event came from a game controller
-      if ((event.getSource() & InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD
-          && event.getAction() == KeyEvent.ACTION_UP) {
+    // Check that the event came from a game controller
+    if ((event.getSource() & InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD
+        && controlMode == ControlMode.GAMEPAD) {
+      // Only handle key once (when released)
+      if (event.getAction() == KeyEvent.ACTION_UP) {
         switch (event.getKeyCode()) {
           case KeyEvent.KEYCODE_BUTTON_A: // x
             controllerHandler.handleLogging();
@@ -456,9 +460,15 @@ public class NetworkActivity extends CameraActivity implements OnImageAvailableL
           case KeyEvent.KEYCODE_BUTTON_R1:
             controllerHandler.handleNetwork();
             break;
+          case KeyEvent.KEYCODE_BUTTON_THUMBL:
+            controllerHandler.handleSpeedUp();
+            break;
+          case KeyEvent.KEYCODE_BUTTON_THUMBR:
+            controllerHandler.handleSpeedDown();
+            break;
           default:
-            // Toast.makeText(this,"Key " + event.getKeyCode() + " not recognized",
-            // Toast.LENGTH_SHORT).show();
+            //               makeText(this,"Key " + event.getKeyCode() + " not recognized",
+            //                       LENGTH_SHORT).show();
             break;
         }
       }

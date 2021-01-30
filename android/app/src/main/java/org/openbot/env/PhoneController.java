@@ -1,6 +1,9 @@
 package org.openbot.env;
 
 import android.content.Context;
+import android.content.IntentFilter;
+import android.net.ConnectivityManager;
+
 import androidx.annotation.NonNull;
 import com.google.android.gms.nearby.connection.Payload;
 import com.google.android.gms.nearby.connection.PayloadCallback;
@@ -20,16 +23,20 @@ public class PhoneController {
   private static final String TAG = "PhoneController";
 
   private static final NearbyConnection connection;
+  private ConnectivityStatusReceiver connectivityStatusReceiver = new ConnectivityStatusReceiver();
+  private IntentFilter intentFilter = new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION);
 
   static {
     connection = new NearbyConnection();
   }
 
   public void connect(Context context) {
+    context.registerReceiver(connectivityStatusReceiver, intentFilter);
     connection.connect(context, payloadCallback);
   }
 
-  public void disconnect() {
+  public void disconnect(Context context) {
+    context.unregisterReceiver(connectivityStatusReceiver);
     connection.disconnect();
   }
 
