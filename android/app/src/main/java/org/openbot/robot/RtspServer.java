@@ -34,7 +34,7 @@ public class RtspServer implements ConnectCheckerRtsp, TextureView.SurfaceTextur
         if (!rtspServerCamera1.isStreaming()) {
             if (rtspServerCamera1.prepareAudio()
                     // && rtspServerCamera1.prepareVideo()) {
-                    && rtspServerCamera1.prepareVideo(width, height, 30, 2000 * 1024, 2, 90)) {
+                    && rtspServerCamera1.prepareVideo(width, height, 30, 1000 * 1024, 2, 90)) {
                 rtspServerCamera1.startStream("");
             }
         }

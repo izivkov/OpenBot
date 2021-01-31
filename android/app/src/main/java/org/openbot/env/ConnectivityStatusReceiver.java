@@ -24,12 +24,12 @@ public class ConnectivityStatusReceiver extends BroadcastReceiver {
 
         NetworkInfo activeNetworkInfo = connMgr.getActiveNetworkInfo();
 
-        if (activeNetworkInfo != null) {
-            WifiManager mgr = (WifiManager)context.getSystemService(Context.WIFI_SERVICE);
-            int wifiIP = mgr.getConnectionInfo().getIpAddress();
-            String myIp = android.text.format.Formatter.formatIpAddress(wifiIP);
+        WifiManager mgr = (WifiManager)context.getSystemService(Context.WIFI_SERVICE);
+        int wifiIP = mgr.getConnectionInfo().getIpAddress();
+        String myIp = android.text.format.Formatter.formatIpAddress(wifiIP);
 
-            BotToControllerEventBus.emitEvent(createStatus("IP_ADDRESS", myIp));
+        BotToControllerEventBus.emitEvent(createStatus("IP_ADDRESS", myIp));
+        if (activeNetworkInfo != null) {
         }
     }
 
