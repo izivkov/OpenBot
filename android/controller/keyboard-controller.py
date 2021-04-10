@@ -128,7 +128,7 @@ class CommandHandler:
     left = DriveValue()
     right = DriveValue()
 
-    reverter = ZeroReverter(left, right, 4, 4)
+    reverter = ZeroReverter(left, right, 1, 1)
 
     def send_command(self, command):
         s_socket.send('{{command: {command} }}\n'.format(command=command))
