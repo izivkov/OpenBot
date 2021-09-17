@@ -107,7 +107,7 @@ public class NetworkServiceConnection implements ILocalConnection {
   private void runConnection() {
     try {
       mNsdManager.discoverServices(
-          /*ALL_SERVICE_TYPES*/ SERVICE_TYPE, NsdManager.PROTOCOL_DNS_SD, mDiscoveryListener);
+              /* ALL_SERVICE_TYPES */ SERVICE_TYPE, NsdManager.PROTOCOL_DNS_SD, mDiscoveryListener);
     } catch (IllegalArgumentException e) {
       Log.d(TAG, "runConnection: Already discovering: " + e);
     }

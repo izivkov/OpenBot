@@ -1,14 +1,17 @@
+import logging
+import argparse
 import pygame
 from pygame.locals import *
 import cv2 # pip3 install opencv-python
 import os
 import threading
 import json
+from queue import Queue
 from common import *
-import argparse
-
+from webrtc import *
 
 s_socket = ServerSocket()
+webrtc = WebRTC()
 
 white = (255, 255, 255)
 black = (0, 0, 0)
@@ -205,7 +208,7 @@ def run_receiver ():
     while True:
         try:
             data = s_socket.receive()
-            print(f'Received: {data}\r')
+            # print(f'Received: {data}\r')
 
             if data in ["", None]:
                 return
@@ -234,12 +237,35 @@ def handle_status(data):
             if status['VIDEO_COMMAND'] == 'START':
                 print(f'Starting video...')
                 video_player.play_video()
+
             if status['VIDEO_COMMAND'] == 'STOP':
                 video_player.stop_video()
 
         if 'VIDEO_PROTOCOL' in status:
+            if status['VIDEO_PROTOCOL'] == 'RTSP':
+                print(f'RTSP selected')
+
             if status['VIDEO_PROTOCOL'] == 'WEBRTC':
-                screen.add_text("WebRTC video not supported. Please set your Android app to use RTSP.")
+                print(f'WEBRTC selected')
+                # screen.add_text("WebRTC video not supported. Please set your Android app to use RTSP.")
+
+                t_rcvr = threading.Thread(target=webrtc.start)
+                t_rcvr.start()
+                
+                def run_webrtc_sender ():
+                    print(f'Started run_webrtc_sender...')
+                    
+                    while True:
+                        event = webrtc.get()
+                        print(f'\nSending data: {event}\n')
+                        s_socket.send('{{webrtc_event: {event} }}\n'.format(event=event))
+
+                t_sender = threading.Thread(target=run_webrtc_sender)
+                t_sender.start()
+
+        if 'WEB_RTC_EVENT' in status:
+            webrtc_event = json.loads(status['WEB_RTC_EVENT'])
+            webrtc.put(webrtc_event)
 
     except Exception as e:
         print (f"handle_status exception: {e}")
@@ -313,6 +339,8 @@ if __name__ == "__main__":
     # cli
     parser = argparse.ArgumentParser()
     parser.add_argument("-v", "--video", action="store_true", help="video stream")
+
+    logging.basicConfig(level=logging.DEBUG)
 
     args = parser.parse_args()
     run (args)

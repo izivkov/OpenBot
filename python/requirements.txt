@@ -2,3 +2,7 @@ pygame
 opencv-python
 zeroconf
 click
+
+aiortc
+aiohttp 
+websockets

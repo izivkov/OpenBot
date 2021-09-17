@@ -275,6 +275,9 @@ public class WebRtcServer implements IVideoServer {
 
           @Override
           public void onIceConnectionChange(PeerConnection.IceConnectionState iceConnectionState) {
+            if (iceConnectionState.toString().contains("FAILED") || iceConnectionState.equals("FAILED")) {
+              Log.d(TAG, "onIceConnectionChange: failed......");
+            }
             Log.d(TAG, "onIceConnectionChange: ");
           }
 
