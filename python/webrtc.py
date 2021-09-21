@@ -63,11 +63,7 @@ async def run(pc, player, recorder, signaling):
 
     # connect to websocket and join
     params = await signaling.connect()
-
     async def send_candidates (desc):
-
-        # await signaling.send_str('{"type":"candidate","label":0,"id":"audio","candidate":"candidate:3378846520 1 udp 2122260223 192.168.1.109 38681 typ host generation 0 ufrag l7Vn network-id 3 network-cost 10"}')
-        # await signaling.send_str('{"type":"candidate","label":0,"id":"audio","candidate":"candidate:842163049 1 udp 1686052607 76.67.135.112 38681 typ srflx raddr 192.168.1.120 rport 38681 generation 0 ufrag l7Vn network-id 3 network-cost 10"}')
 
         lines = desc.split("\r\n")
         for line in lines:
@@ -87,6 +83,18 @@ async def run(pc, player, recorder, signaling):
                 candidate_str = object_to_string(candidate_obj)
                 await signaling.send_str(candidate_str)
 
+    def removeCandidates (desc) -> str:
+        without_candidates = ""
+
+        lines = desc.split("\r\n")
+        for line in lines:
+            if "a=candidate:" in line or "a=end-of-candidates" in line:
+                continue
+            
+            without_candidates += line + "\r\n"
+
+        return without_candidates
+
     # consume signaling
     while True:
         obj = await signaling.receive()
@@ -96,10 +104,11 @@ async def run(pc, player, recorder, signaling):
             await recorder.start()
 
             if obj.type == "offer":
-                # send answer
                 add_tracks()
                 await pc.setLocalDescription(await pc.createAnswer())
                 await signaling.send(pc.localDescription)
+                
+                # Do we need to send candidates separately, or are they sent with the 'answer' sdp
                 # await send_candidates(pc.localDescription.sdp)
 
         elif isinstance(obj, RTCIceCandidate):
